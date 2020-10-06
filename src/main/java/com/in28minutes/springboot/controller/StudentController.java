@@ -1,52 +1,54 @@
 package com.in28minutes.springboot.controller;
 
-import java.net.URI;
-import java.util.List;
-
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
-
 import com.in28minutes.springboot.model.Course;
 import com.in28minutes.springboot.service.StudentService;
+import org.jboss.resteasy.annotations.jaxrs.PathParam;
 
+import javax.inject.Inject;
+import javax.ws.rs.Consumes;
+import javax.ws.rs.GET;
+import javax.ws.rs.POST;
 import javax.ws.rs.Path;
+import javax.ws.rs.Produces;
+import javax.ws.rs.core.Context;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
+import javax.ws.rs.core.UriInfo;
+import java.util.Collections;
+import java.util.List;
 
-@Path()
+@Path("students")
+@Produces(MediaType.APPLICATION_JSON)
+@Consumes(MediaType.APPLICATION_JSON)
 public class StudentController {
 
-	@Autowired
-	private StudentService studentService;
+    @Inject
+    private StudentService studentService;
 
-	@GetMapping("/students/{studentId}/courses")
-	public List<Course> retrieveCoursesForStudent(@PathVariable String studentId) {
-		return studentService.retrieveCourses(studentId);
-	}
-	
-	@GetMapping("/students/{studentId}/courses/{courseId}")
-	public Course retrieveDetailsForCourse(@PathVariable String studentId,
-			@PathVariable String courseId) {
-		return studentService.retrieveCourse(studentId, courseId);
-	}
-	
-	@PostMapping("/students/{studentId}/courses")
-	public ResponseEntity<Void> registerStudentForCourse(
-			@PathVariable String studentId, @RequestBody Course newCourse) {
+    @GET
+    @Path("/{studentId}/courses")
+    public List<Course> retrieveCoursesForStudent(@PathParam String studentId) {
+        return studentService.retrieveCourses(studentId);
+    }
 
-		Course course = studentService.addCourse(studentId, newCourse);
+    @GET
+    @Path("/{studentId}/courses/{courseId}")
+    public Course retrieveDetailsForCourse(@PathParam String studentId,
+                                           @PathParam String courseId) {
+        return studentService.retrieveCourse(studentId, courseId);
+    }
 
-		if (course == null)
-			return ResponseEntity.noContent().build();
+    @POST
+    @Path("/{studentId}/courses")
+    public Response registerStudentForCourse(
+            @PathParam String studentId, Course newCourse, @Context UriInfo uriInfo) throws Exception {
 
-		URI location = ServletUriComponentsBuilder.fromCurrentRequest().path(
-				"/{id}").buildAndExpand(course.getId()).toUri();
+        Course course = studentService.addCourse(studentId, newCourse);
 
-		return ResponseEntity.created(location).build();
-	}
+        if (course == null)
+            return Response.noContent().build();
+
+        return Response.created(uriInfo.getRequestUriBuilder().path(course.getId()).build().toURL().toURI()).build();
+    }
 
 }
